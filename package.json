@@ -1,0 +1,32 @@
+{
+    "name": "monitoring-app",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.3.1",
+        "imap": "^0.8.19",
+        "mailparser": "^3.7.2",
+        "nodemailer": "^6.9.3"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.17.0",
+        "@types/imap": "^0.8.42",
+        "@types/moment": "^2.13.0",
+        "@types/node": "^22.13.0",
+        "@types/nodemailer": "^6.4.17",
+        "@typescript-eslint/eslint-plugin": "^8.18.0",
+        "@typescript-eslint/parser": "^8.18.0",
+        "eslint": "^9.17.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-prettier": "^5.2.1",
+        "prettier": "^3.4.2",
+        "ts-node": "^10.9.1",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.7.2",
+        "typescript-eslint": "^8.18.0"
+    }
+}
