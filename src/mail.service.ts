@@ -41,7 +41,11 @@ class EmailService {
         });
     }
 
-    async sendEmail(to: string, subject: string, text: string): Promise<void> {
+    async sendEmail(
+        to: string,
+        subject: string,
+        text: string
+    ): Promise<nodemailer.SendMailOptions> {
         try {
             const mailOptions: nodemailer.SendMailOptions = {
                 from: `"${process.env.MAIL_USER_NAME}" <${process.env.MAIL_USER}>`,
@@ -53,14 +57,16 @@ class EmailService {
             const info = await this.transporter.sendMail(mailOptions);
             console.log(`✅ Email sent to ${to}: ${info.messageId}`);
 
-            this.appendToSentFolder(mailOptions);
+            return mailOptions;
         } catch (error) {
             console.error("❌ Email sending failed:", error);
             throw error;
         }
     }
 
-    private appendToSentFolder(mailOptions: nodemailer.SendMailOptions): void {
+    private appendToSentFolder(
+        mailOptionsList: nodemailer.SendMailOptions[]
+    ): void {
         this.imap.once("ready", () => {
             this.imap.openBox("Sent", false, (err) => {
                 if (err) {
@@ -68,28 +74,33 @@ class EmailService {
                     return;
                 }
 
-                const emailContent =
-                    `From: ${mailOptions.from}\r\n` +
-                    `To: ${mailOptions.to}\r\n` +
-                    `Subject: ${mailOptions.subject}\r\n` +
-                    `Date: ${new Date().toUTCString()}\r\n` +
-                    `\r\n${mailOptions.text}`;
+                for (const item of mailOptionsList) {
+                    const emailContent =
+                        `From: ${item.from}\r\n` +
+                        `To: ${item.to}\r\n` +
+                        `Subject: ${item.subject}\r\n` +
+                        `Date: ${new Date().toUTCString()}\r\n` +
+                        `\r\n${item.text}`;
 
-                this.imap.append(
-                    emailContent,
-                    { mailbox: "Sent", flags: ["\\Seen"] },
-                    (appendErr) => {
-                        if (appendErr) {
-                            console.error(
-                                "❌ IMAP Append to Sent Error:",
-                                appendErr
-                            );
-                        } else {
-                            console.log("✅ Email saved to IMAP Sent folder.");
+                    this.imap.append(
+                        emailContent,
+                        { mailbox: "Sent", flags: ["\\Seen"] },
+                        (appendErr) => {
+                            if (appendErr) {
+                                console.error(
+                                    "❌ IMAP Append to Sent Error:",
+                                    appendErr
+                                );
+                            } else {
+                                console.log(
+                                    `✅ Email saved to IMAP Sent folder: ${item.to}`
+                                );
+                            }
                         }
-                        this.imap.end();
-                    }
-                );
+                    );
+                }
+
+                this.imap.end();
             });
         });
 
@@ -103,6 +114,8 @@ class EmailService {
     async sendBulkEmails(templatePath: string, csvPath: string): Promise<void> {
         let hadError = false;
         let failedEmails: string[] = [];
+
+        let mailOptionsList: nodemailer.SendMailOptions[] = [];
 
         const template = JSON.parse(
             fs.readFileSync(templatePath, "utf-8")
@@ -123,11 +136,13 @@ class EmailService {
                         recipient
                     );
 
-                    await this.sendEmail(
+                    const mailOptions = await this.sendEmail(
                         recipient.email,
                         processedSubject,
                         processedBody
                     );
+
+                    mailOptionsList.push(mailOptions);
                 } catch (error) {
                     console.error(
                         `❌ Failed to send email to ${recipient.email}:`,
@@ -142,12 +157,13 @@ class EmailService {
         } catch (error) {
             console.error("❌ Failed to parse CSV:", error);
             throw error;
-        }
+        } finally {
+            this.appendToSentFolder(mailOptionsList);
 
-        if (hadError) {
-            await this.writeFailedEmails(failedEmails);
-
-            throw new Error("❌ Failed to send some emails");
+            if (hadError) {
+                await this.writeFailedEmails(failedEmails);
+                throw new Error("❌ Failed to send some emails");
+            }
         }
     }
 
