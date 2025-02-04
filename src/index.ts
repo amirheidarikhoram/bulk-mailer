@@ -1,25 +1,24 @@
 import EmailService from "./mail.service";
+import path from "path";
 
 const emailService = new EmailService();
 
-const recipients = [
-    { name: "Amir Heidari", email: "amir.heidari.khoram@gmail.com" }
-];
-
 const main = async () => {
-    for (const recipient of recipients) {
-        try {
-            await emailService.sendEmail(
-                recipient.email,
-                `Hello, ${recipient.name}!`,
-                "This is a test email with IMAP sent-folder saving."
-            );
-        } catch (error) {
-            console.error(
-                `❌ Failed to send email to ${recipient.email}:`,
-                error
-            );
-        }
+    const args = process.argv.slice(2);
+
+    if (args.length !== 2) {
+        console.error("Usage: yarn start <template-path> <csv-path>");
+        process.exit(1);
+    }
+
+    const [templatePath, csvPath] = args.map((arg) => path.resolve(arg));
+
+    try {
+        await emailService.sendBulkEmails(templatePath, csvPath);
+        console.log("✅ Bulk email sending completed");
+    } catch (error) {
+        console.error("❌ Bulk email sending failed:", error);
+        process.exit(1);
     }
 };
 

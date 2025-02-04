@@ -1,0 +1,4 @@
+{
+    "subject": "Hello {{name}}!",
+    "body": "Dear {{name}},\n\nWelcome.\n\nBest regards,\nHR Team"
+}
