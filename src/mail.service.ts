@@ -2,8 +2,8 @@ import Imap from "imap";
 import nodemailer from "nodemailer";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
-import * as csv from "csv-parse";
 import * as path from "path";
+import { parseCSV } from "./utils";
 
 dotenv.config();
 
@@ -122,7 +122,7 @@ class EmailService {
         ) as EmailTemplate;
 
         try {
-            const records = await this.parseCSV(csvPath);
+            const records = await parseCSV(csvPath);
             console.log(`📊 Found ${records.length} recipients`);
 
             for (const recipient of records) {
@@ -165,26 +165,6 @@ class EmailService {
                 throw new Error("❌ Failed to send some emails");
             }
         }
-    }
-
-    private async parseCSV(csvPath: string): Promise<RecipientData[]> {
-        return new Promise((resolve, reject) => {
-            const records: RecipientData[] = [];
-            fs.createReadStream(csvPath)
-                .pipe(
-                    csv.parse({
-                        columns: true,
-                        skip_empty_lines: true,
-                        trim: true
-                    })
-                )
-                .on("data", (data) => records.push(data))
-                .on("error", (error) => reject(error))
-                .on("end", () => {
-                    console.log("✅ CSV parsing completed");
-                    resolve(records);
-                });
-        });
     }
 
     private async writeFailedEmails(emails: string[]): Promise<void> {
